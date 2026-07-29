@@ -1,0 +1,105 @@
+# Full Workflow
+container_registry: Docker://snRNAseq::latest # Docker container, e.g., Docker://snRNAseq::latest
+data_dir: data # Base directory for input data, e.g., data
+output_dir: output # Base directory for output data, e.g., output
+standalone: FALSE # Set to TRUE if running individual steps, FALSE if running the full workflow
+
+# Processing Step 1: Merge Sample AnnData Files
+adata_dir: sample_adatas # Directory containing sample AnnData files, e.g., sample_adatas
+metadata_dir: metadata # Directory containing metadata files, e.g., metadata
+sample_metadata: metadata.csv # CSV file containing sample metadata, e.g., metadata.csv. Must include columns for Region, Sample ID, and Adata File
+sample_adata_suffix: cleaned_unfiltered # Suffix for sample AnnData files, e.g., cleaned_unfiltered.h5ad
+metadata_region_col: Region # Column in metadata for region specification, e.g., Region
+metadata_sample_col: Sample_ID # Column in metadata for sample ID, e.g., Sample_ID
+adata_file_col: Adata_File # Column in metadata for AnnData file, e.g., Adata_File
+sample_adata_files: adata_samples_files.tsv # Name of the TSV file containing sample AnnData file paths, e.g., adata_samples_files.tsv. Output of the list_sample_adata_files.py script.
+regions_file: regions.txt # Name of the text file containing the list of regions to process, e.g., regions.txt. Output of the list_sample_adata_files.py script.
+merged_adata_prefix: merged_unfiltered # Prefix for the merged AnnData file, e.g., merged_unfiltered.h5ad
+initial_adata_metadata_prefix: merged_unfiltered_metadata # Prefix for the initial adata metadata file, e.g., merged_unfiltered_metadata
+
+# Processing Step 2: Quality Control
+qc_metrics: n_genes_by_counts, total_counts, pct_counts_rb, doublet_score # Metrics to compute for QC, e.g., n_genes_by_counts, total_counts, pct_counts_rb, doublet_score
+qc_plots_dir: qc_plots # Directory for QC plots, e.g., qc_plots
+pct_counts_mt_max: 10  # Maximum percentage of mitochondrial counts allowed, e.g., 10
+doublet_score_max: 0.2 # Maximum doublet score allowed, e.g., 0.2
+total_counts_limits: [500, 100000] # Minimum and maximum total counts allowed, e.g., [500, 100000]
+n_genes_by_counts_limits: [300, 10000] # Minimum and maximum number of genes by counts allowed, e.g., [300, 10000]
+filtered_adata_prefix: merged_filtered # Prefix for the filtered AnnData file, e.g., merged_filtered
+
+# Processing Step 3: Add Sample Metadata
+adata_sample_col: Sample # Column in AnnData obs for sample ID, e.g., Sample
+meta_annotated_adata_prefix: merged_filtered_annotated # Prefix for the annotated AnnData file after adding sample metadata, e.g., merged_filtered_annotated
+
+# Processing Step 4: Cell Type Mapping
+mmc_ref_dir: mmc_ref # Directory containing the MapMyCells reference data, e.g., mmc_ref
+mmc_ref_tax: WHB # Name of the MapMyCells reference taxonomy, e.g., WHB
+mmc_marker_genes: query_markers.json # Name of the JSON file containing marker genes for cell type mapping, e.g., query_markers.json 
+mmc_precomputed_stats: precomputed_stats.h5 # Name of the file containing precomputed statistics, e.g., precomputed_stats.h5
+mmc_gene_mapper_dir: abc_cache/mapmycells/mmc-gene-mapper/20250630 # Directory containing the MapMyCells gene mapper data, e.g., abc_cache/mapmycells/mmc-gene-mapper/20250630
+mmc_gene_mapper_db: mmc_gene_mapper.2025-08-04.db # Name of the MapMyCells gene mapper database file, e.g., mmc_gene_mapper.2025-08-04.db
+mmc_results_prefix: mmc_results # Prefix for the MapMyCells results file, e.g., mmc_results
+mmc_max_gb: 60 # Maximum memory in GB for MapMyCells processing, e.g., 60
+mmc_rng_seed: 661123 # Random seed for MapMyCells processing, e.g., 661123
+mmc_chunk_size: 1000 # Chunk size for MapMyCells processing, e.g., 1000
+mmc_n_runners_up: 5 # Number of runners up for MapMyCells processing, e.g., 5
+mmc_n_processors: 8 # Number of processors for MapMyCells processing, e.g., 8
+mmc_annotated_adata_prefix: merged_filtered_annotated_mmc # Prefix for the annotated AnnData file after MapMyCells processing, e.g., merged_filtered_annotated_mmc
+mmc_output_cell_types_file_prefix: mmc_cell_types # Prefix for the MapMyCells output cell types file, e.g., mmc_cell_types
+
+# Processing Step 5: Feature Selection
+gwas_summary_stats: Hampton_ST3_table.tsv #UPDATEME # File containing genes of interest to retain during feature selection, e.g., Hampton_ST3_table.tsv
+ensembl_mapping_file: ensembl_ref/gene_id_mappings.tsv #UPDATEME # File containing Ensembl gene ID mappings, e.g., ensembl_ref/gene_id_mappings.tsv
+batch_key: team # Key in AnnData obs for batch information, e.g., team
+n_top_genes: 3000 # Number of top highly variable genes to select, e.g., 3000
+reduced_adata_prefix: merged_filtered_annotated_mmc_reduced # Prefix for the reduced AnnData file after feature selection, e.g., merged_filtered_annotated_mmc_reduced
+output_all_genes_prefix: all_genes # Prefix for the output file containing all genes, e.g., all_genes
+output_hvg_genes_prefix: hvg_genes #UPDATEME # Prefix for the output file containing highly variable genes, e.g., hvg_genes
+
+# Processing Step 6: Integration
+latent_key_scvi: scvi_latent # Key in AnnData obsm for scVI latent representation, e.g., scvi_latent
+scvi_adata_prefix: merged_filtered_annotated_mmc_reduced_scvi # Prefix for the AnnData file after scVI integration, e.g., merged_filtered_annotated_mmc_reduced_scvi
+output_scvi_dir: scvi_output # Directory for scVI output, e.g., scvi_output
+latent_key_scanvi: scanvi_latent # Key in AnnData obsm for scANVI latent representation, e.g., scanvi_latent
+mmc_cell_type_label_key: cell_supertype # Key in AnnData obs for MapMyCells cell type labels, e.g., cell_supertype
+scanvi_predictions_key: scanvi_predictions # Key in AnnData obsm for scANVI predictions, e.g., scanvi_predictions
+output_scanvi_dir: scanvi_output # Directory for scANVI output, e.g., scanvi_output
+scanvi_adata_prefix: merged_filtered_annotated_mmc_reduced_scvi_scanvi # Prefix for the AnnData file after scANVI integration, e.g., merged_filtered_annotated_mmc_reduced_scvi_scanvi
+scanvi_output_cell_types_file_prefix: scanvi_cell_types # Prefix for the scANVI output cell types file, e.g., scanvi_cell_types
+
+# Processing Step 7: Clustering
+leiden_res: 0.05 0.1 0.2 0.4 # List of Leiden clustering resolutions to use, e.g., 0.05 0.1 0.2 0.4
+clustered_adata_prefix: merged_filtered_annotated_mmc_reduced_scvi_scanvi_clustered # Prefix for the clustered AnnData file, e.g., merged_filtered_annotated_mmc_reduced_scvi_scanvi_clustered
+clustering_n_neighbors: 15 # Number of neighbors for clustering, e.g., 15
+
+# Processing Step 8: Prepare Final AnnData Object
+target_sum: 1e6 # Target sum for normalization, e.g., 1e6
+cell_type_assignment_key: cell_type_assignment # Key in AnnData obs for final cell type assignment, e.g., cell_type_assignment
+final_adata_prefix: final_adata # Prefix for the final AnnData file, e.g., final_adata
+final_adata_metadata_prefix: final_adata_metadata # Prefix for the final AnnData metadata file, e.g., final_adata_metadata
+
+# Processing Step 9: Report Generation
+scib_report_dir: scib_reports # Directory for scIB reports, e.g., scib_reports
+umap_dir: umaps # Directory for UMAP plots, e.g., umaps
+umap_groups: cell_supertype, scanvi_predictions, cell_type_assignment, team, leiden_res_0.05, leiden_res_0.10, leiden_res_0.20, leiden_res_0.40 # Groups to use for UMAP plots, e.g., cell_supertype, scanvi_predictions, cell_type_assignment, team, leiden_res_0.05, leiden_res_0.10, leiden_res_0.20, leiden_res_0.40
+umap_features: total_counts, n_genes_by_counts, pct_counts_mt, pc_counts_rb, doublet_score # Features to use for UMAP plots, e.g., total_counts, n_genes_by_counts, pct_counts_mt, pc_counts_rb, doublet_score
+
+# Downstream Analysis Step 1: Cell Type Expression Analysis
+gene_symbols_key: gene_symbols # Key in AnnData var for gene symbols, e.g., gene_symbols
+condition_key: Condition # Key in AnnData obs for condition (Case/Control), e.g., Condition
+min_cells: 300 # Minimum number of cells required for analysis, e.g., 300
+mean_expression_threshold: 0.25 # Minimum mean expression threshold for analysis, e.g., 0.25
+mean_fraction_expressed_threshold: 0.1 # Minimum fraction of cells expressing a gene for it to be considered expressed, e.g., 0.1
+results: results # Directory for downstream analysis results, e.g., results
+dotplots_prefix: expression_dotplot # Prefix for the expression dotplots, e.g., expression_dotplot
+expressed_genes_prefix: expressed_genes # Prefix for the expressed genes file, e.g., expressed_genes
+
+# Downstream Analysis Step 2: Differential Expression Analysis
+deseq2_results_prefix: deseq2_results # Prefix for the DESeq2 results file, e.g., deseq2_results
+
+# Downstream Analysis Step 3: Cell Type Association Analysis
+workflow_mode: precomputed # Workflow mode for MAGMA analysis. Options are "precomputed" (if MAGMA ready GWAS summary statistics are provided) or "full" (if raw GWAS summary statistics are provided and need to be processed by MAGMA)
+gwas_base: gwas # Base name for GWAS summary statistics file, e.g., gwas
+magma_gwas_base: NULL # Base name for MAGMA ready GWAS summary statistics file. Provide if workflow_mode is "full", set to NULL if workflow_mode is "precomputed"
+upstream_kb: 35 # Upstream distance in kilobases for MAGMA analysis, e.g., 35
+downstream_kb: 10 # Downstream distance in kilobases for MAGMA analysis, e.g., 10
+magma_results_prefix: cell_type_enrichment_results # Prefix for the MAGMA cell type enrichment results file, e.g., cell_type_enrichment_results
