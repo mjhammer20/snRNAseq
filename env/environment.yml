@@ -1,0 +1,51 @@
+name: snRNAseq
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+  - numpy>=1.23.5,<2.0
+  - scipy>=1.12.0,!=1.17.0
+  - anndata=0.12.0
+  - scanpy
+  - pandas>=2.0.0
+  - matplotlib
+  - pyyaml
+  - harmonypy
+  - pytorch
+  - scvi-tools
+  - pydeseq2
+  - r-base=4.5
+  - freetype
+  - cmake
+  - zlib
+  - pkg-config
+  - liblzma
+  - xz
+  - bzip2
+  - libdeflate
+  - fontconfig
+  - harfbuzz
+  - libuv
+  - libutf8proc
+  - libiconv
+  - r-hdf5r
+  - r-textshaping
+  - r-systemfonts
+  - r-ragg
+  - r-dplyr
+  - r-matrix
+  - libudunits2
+  - fftw
+  - r-gdtools
+  - r-magick
+  - r-rsvg
+  - udunits2
+  - cairo
+  - libcurl
+
+  - pip:
+    - snakemake
+    - scib-metrics
