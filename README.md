@@ -127,5 +127,43 @@ The workflow contains all steps for processing pre-processed snRNAseq data, gene
 ## Repository Structure
 - base/
     - config.yml - used to define workflow parameters that are fed into scripts. Template contains default values, that can be updated by user.
-    - /src/ - source code scripts
-    - /modules/ - SnakeFiles for each workflow step
+    - Snakefile - SnakeFile used to run full workflow. Used STANDALONE=FALSE to run full workflow.
+    - /env/ - environment files for Docker container. Can be used to build a conda env.
+    - /src/ - source code scripts.
+    - /modules/ - SnakeFiles for each workflow step. Use STANDALONE=TRUE to run individual step modules.
+
+## Environment
+Provided in this repo are scripts to build a reproducible environment containing all necessary packages and libraries to run each step in the processing/analysis workflow along with a Dockerfile to build an image for this environment and run the workflow within a container. To build a conda environment containing all necessary packages and libraries, follow these steps (ensure conda is installed):
+
+1. conda env create -f env/environment.yml
+    - Builds the conda environment and installs necessary packages (using conda and pip)
+2. conda activate snRNAseq
+    - Activates the environment
+3. Rscript install_libraries.r
+    - Installs necessary R libraries within the conda environment
+4. git clone https://github.com/AllenInstitute/cell_type_mapper.git \
+    && cd cell_type_mapper \
+    && pip install .
+    - Installs cell_type_mapper from source
+5. snakemake -s Snakefile -j1 -p
+    - Runs full processing and analysis workflow.
+6. snakemake -s modules/<module.smk> -j1 -p
+    - Runs individual specified step module.
+
+To build the Docker image and run this workflow (or individual steps) within a container, follow these steps (ensure Docker is installed):
+
+1. docker build Dockerfile .
+    - Builds the Docker image containing all necessary libraries and packages.
+2. docker run --rm \
+  -v </path/to/data>:/snRNAseq/data \
+  -v </path/to/results>:/snRNAseq/results \
+  snrnaseq-base --cores <all>
+    - Runs full processing and analysis workflow.
+    - Make sure to specifify the paths to your data and results directories, along with the number of cores.
+3. docker run --rm \
+  -v </path/to/data>:/snRNAseq/data \
+  -v </path/to/results>:/snRNAseq/results \
+  snrnaseq-base \
+  --snakefile modules/<module.smk> --cores <all>
+  - Runs individual step module.
+  - Make sure to specifify the paths to your data and results directories, along with the number of cores and the filename for the module you wish to run.
