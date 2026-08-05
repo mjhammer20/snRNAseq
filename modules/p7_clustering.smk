@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = "GP2-Expansion/workflows"
+workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
 sys.path.insert(0, str(workflows_root))
 from src.helpers import parse_regions_file, total_bytes
 
