@@ -60,11 +60,13 @@ rule integrate_scvi:
         output_scvi_dir=f"{REF_TAX_OUTPUT_DIR}/{OUTPUT_SCVI_DIR}"
 
     threads:
-        16
+        4
 
     resources:
         mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
         disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        gpu=4,
+        gpu_type="nvidia-tesla-t4",
         runtime=10800
 
     log:
