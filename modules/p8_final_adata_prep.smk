@@ -5,14 +5,18 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
-CONTAINER_REGISTRY = config["container_registry"]
+CONTAINER = config["container"]
 STANDALONE = config["standalone"]
 OUTPUT_DIR = config["output_dir"]
 REGIONS_FILE = config["regions_file"]
@@ -30,7 +34,7 @@ FINAL_ADATA_METADATA_PREFIX = config["final_adata_metadata_prefix"]
 REGIONS = parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")
 
 # Compute total GB for merged adata files once at parse time for resource calculation
-total_gb = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{CLUSTERED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
+TOTAL_GB = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{CLUSTERED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
 
 # Rules
 if STANDALONE:
@@ -49,6 +53,7 @@ rule prepare_final_adata:
         expand(f"{REF_TAX_OUTPUT_DIR}/{FINAL_ADATA_METADATA_PREFIX}_{{region}}.tsv", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         regions=" ".join(REGIONS),
         adata_input_prefix=f"{REF_TAX_OUTPUT_DIR}/{CLUSTERED_ADATA_PREFIX}",
         target_sum=TARGET_SUM,
@@ -62,22 +67,22 @@ rule prepare_final_adata:
         16
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{REF_TAX_OUTPUT_DIR}/logs/cell_type_assignment.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/omics-base:latest"
+        CONTAINER
 
     shell:
         """
         set -euo pipefail
 
         # Run cell type assignment script
-        python3 -u GP2-Expansion/workflows/src/prepare_final_adata.py \
+        python3 -u {params.workflow_root}/src/prepare_final_adata.py \
             --regions "{params.regions}" \
             --adata-input-prefix {params.adata_input_prefix} \
             --target-sum {params.target_sum} \

@@ -5,14 +5,18 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
-CONTAINER_REGISTRY = config["container_registry"]
+CONTAINER = config["container"]
 STANDALONE = config["standalone"]
 OUTPUT_DIR = config["output_dir"]
 DATA_DIR = config["data_dir"]
@@ -32,7 +36,7 @@ MAGMA_RESULTS_PREFIX = config["magma_results_prefix"]
 REGIONS = parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")
 
 # Compute total GB for merged adata files once at parse time for resource calculation
-total_gb = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{FINAL_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
+TOTAL_GB = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{FINAL_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
 
 # Determine analysis name based on workflow mode
 if WORKFLOW_MODE == "precomputed":
@@ -56,6 +60,7 @@ rule cell_type_association_analysis:
         expand(f"{REF_TAX_OUTPUT_DIR}/MAGMA_Figures/{ANALYSIS_NAME}/{ANALYSIS_NAME}.{UPSTREAM_KB}UP.{DOWNSTREAM_KB}DOWN.annotLevel1.ConditionalFacets.{{region}}.Merged.pdf", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         regions=REGIONS,
         data_dir=DATA_DIR,
         ref_tax_output_dir=REF_TAX_OUTPUT_DIR,
@@ -72,19 +77,19 @@ rule cell_type_association_analysis:
         16
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{REF_TAX_OUTPUT_DIR}/logs/cell_type_association_analysis.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/omics-base-R:latest"
+        CONTAINER
 
     shell:
         """
-        Rscript GP2-Expansion/workflows/src/cell_type_enrichment.r \
+        Rscript {params.workflow_root}/src/cell_type_enrichment.r \
             --regions "{params.regions}" \
             --data-dir {params.data_dir} \
             --ref-tax-output-dir {params.ref_tax_output_dir} \

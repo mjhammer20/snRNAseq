@@ -5,14 +5,18 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
-CONTAINER_REGISTRY = config["container_registry"]
+CONTAINER = config["container"]
 OUTPUT_DIR = config["output_dir"]
 DATA_DIR = config["data_dir"]
 REGIONS_FILE = config["regions_file"]
@@ -32,7 +36,7 @@ OUTPUT_HVG_GENES_PREFIX = config["output_hvg_genes_prefix"]
 REGIONS = parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")
 
 # Compute total GB for merged adata files once at parse time for resource calculation
-total_gb = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{MMC_ANNOTATED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
+TOTAL_GB = total_bytes(adata_prefix=f"{REF_TAX_OUTPUT_DIR}/{MMC_ANNOTATED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
 
 # Rules
 rule all:
@@ -55,6 +59,7 @@ rule process:
         expand(f"{REF_TAX_OUTPUT_DIR}/{OUTPUT_HVG_GENES_PREFIX}_{{region}}.csv", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         mmc_results_prefix=f'{REF_TAX_OUTPUT_DIR}/{MMC_RESULTS_PREFIX}',
         adata_input_prefix=f"{REF_TAX_OUTPUT_DIR}/{MMC_ANNOTATED_ADATA_PREFIX}",
         batch_key=BATCH_KEY,
@@ -68,19 +73,19 @@ rule process:
         4
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{REF_TAX_OUTPUT_DIR}/logs/feature_selection.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/omics-base:latest"
+        CONTAINER
 
     shell:
         """
-        python3 -u GP2-Expansion/workflows/src/feature_selection.py \
+        python3 -u {params.workflow_root}/src/feature_selection.py \
             --adata-input-prefix {params.adata_input_prefix} \
             --regions "{params.regions}" \
             --gwas-summary-stats {input.gwas_summary_stats} \
