@@ -4,7 +4,7 @@ import os
 import gc 
 import traceback
 from pathlib import Path
-import scanpy as sc
+import scanpy as sc # type: ignore silences pylance warnings
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to make feature and group UMAP plots
@@ -105,10 +105,10 @@ def main(args: argparse.Namespace):
     umap_dir = args.umap_dir
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")
