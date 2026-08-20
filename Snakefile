@@ -11,20 +11,20 @@ import sys
 from pathlib import Path
 
 # Resolve the workflow root so module-level helper imports work
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, workflows_root)
+WORKFLOW_ROOT = os.path.dirname(os.path.abspath(workflow.snakefile))
+sys.path.insert(0, WORKFLOW_ROOT)
 
 from src.helpers import parse_regions_file
 
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
-configfile: "config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
-OUTPUT_DIR          = config["output_dir"]
-REGIONS_FILE        = config["regions_file"]
-REF_TAX             = config["mmc_ref_tax"]
-REF_TAX_OUTPUT_DIR  = f"{OUTPUT_DIR}/{REF_TAX}"
+OUTPUT_DIR = config["output_dir"]
+REGIONS_FILE = config["regions_file"]
+REF_TAX = config["mmc_ref_tax"]
+REF_TAX_OUTPUT_DIR = f"{OUTPUT_DIR}/{REF_TAX}"
 
 # REGIONS is produced at runtime by p1. All downstream expand()
 # calls use a lambda so they resolve lazily after p1 completes.
@@ -38,20 +38,20 @@ def regions(wildcards):
 # ------------------------------------------------------------
 
 # Processing
-include: "modules/p1_sample_merging.smk"
-include: "modules/p2_qc_filtering.smk"
-include: "modules/p3_sample_metadata_annotation.smk"
-include: "modules/p4_cell_typing_mapping.smk"
-include: "modules/p5_feature_selection.smk"
-include: "modules/p6_integration.smk"
-include: "modules/p7_clustering.smk"
-include: "modules/p8_final_adata_prep.smk"
-include: "modules/p9_report_generation.smk"
+include: f"{WORKFLOW_ROOT}/modules/p1_sample_merging.smk"
+include: f"{WORKFLOW_ROOT}/modules/p2_qc_filtering.smk"
+include: f"{WORKFLOW_ROOT}/modules/p3_sample_metadata_annotation.smk"
+include: f"{WORKFLOW_ROOT}/modules/p4_cell_typing_mapping.smk"
+include: f"{WORKFLOW_ROOT}/modules/p5_feature_selection.smk"
+include: f"{WORKFLOW_ROOT}/modules/p6_integration.smk"
+include: f"{WORKFLOW_ROOT}/modules/p7_clustering.smk"
+include: f"{WORKFLOW_ROOT}/modules/p8_final_adata_prep.smk"
+include: f"{WORKFLOW_ROOT}/modules/p9_report_generation.smk"
 
 # Analysis
-include: "modules/a1_cell_type_expression_analysis.smk"
-include: "modules/a2_differential_expression_analysis.smk"
-include: "modules/a3_cell_type_association_analysis.smk"
+include: f"{WORKFLOW_ROOT}/modules/a1_cell_type_expression_analysis.smk"
+include: f"{WORKFLOW_ROOT}/modules/a2_differential_expression_analysis.smk"
+include: f"{WORKFLOW_ROOT}/modules/a3_cell_type_association_analysis.smk"
 
 # ------------------------------------------------------------
 # Master rule — collects all terminal outputs from every module

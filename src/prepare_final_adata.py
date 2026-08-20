@@ -1,7 +1,7 @@
 # Imports
 import argparse
-import scanpy as sc
-from anndata import AnnData
+import scanpy as sc #type: ignore silences pylance warning
+from anndata import AnnData #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import gc
 import os
@@ -54,6 +54,7 @@ def assign_cell_type_assignment_labels(
 
     return adata
 
+# Function to process a single region
 def process_region(
         region: str, 
         adata_input_prefix: str,
@@ -116,6 +117,7 @@ def process_region(
     del adata
     gc.collect()
 
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     # Extract arguments
     regions = args.regions.split()
@@ -128,10 +130,10 @@ def main(args: argparse.Namespace):
     metadata_output_prefix = args.metadata_output_prefix
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

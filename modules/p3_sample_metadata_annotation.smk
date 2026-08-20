@@ -5,15 +5,19 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
+CONTAINER = config["container"]
 STANDALONE = config["standalone"]
-CONTAINER_REGISTRY = config["container_registry"]
 OUTPUT_DIR = config["output_dir"]
 DATA_DIR = config["data_dir"]
 REGIONS_FILE = config["regions_file"]
@@ -28,7 +32,7 @@ META_ANNOTATED_ADATA_PREFIX = config["meta_annotated_adata_prefix"]
 REGIONS = parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")
 
 # Compute total GB for merged adata files once at parse time for resource calculation
-total_gb = total_bytes(adata_prefix=f"{OUTPUT_DIR}/{FILTERED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
+TOTAL_GB = total_bytes(adata_prefix=f"{OUTPUT_DIR}/{FILTERED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
 
 # Rules
 if STANDALONE:
@@ -46,6 +50,7 @@ rule add_sample_metadata:
         expand(f"{OUTPUT_DIR}/{META_ANNOTATED_ADATA_PREFIX}_{{region}}.h5ad", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         regions=" ".join(REGIONS),
         adata_input_prefix=f"{OUTPUT_DIR}/{FILTERED_ADATA_PREFIX}",
         metadata_region_col=METADATA_REGION_COL,
@@ -57,22 +62,22 @@ rule add_sample_metadata:
         16
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{OUTPUT_DIR}/logs/add_sample_metadata.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/omics-base:latest"
+        CONTAINER
 
     shell:
         """
         set -euo pipefail
 
         # Run sample metadata addition script
-        python3 -u GP2-Expansion/workflows/src/add_sample_metadata.py \
+        python3 -u {params.workflow_root}/src/add_sample_metadata.py \
             --regions "{params.regions}" \
             --adata-input-prefix {params.adata_input_prefix} \
             --metadata-region-col "{params.metadata_region_col}" \

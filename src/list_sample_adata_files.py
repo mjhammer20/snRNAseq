@@ -4,7 +4,7 @@ import argparse
 import sys
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = 'GP2-Expansion/workflows'
+workflows_root = 'snRNAseq'
 sys.path.insert(0, str(workflows_root))
 from src.helpers import normalize_region_names
 
@@ -22,6 +22,7 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
 
     return sample_adata_files_df
 
+# Main function to handle argument parsing and generate sample AnnData files list
 def main(args: argparse.Namespace):
     # Extract arguments
     sample_metadata_file = args.sample_metadata
@@ -34,7 +35,7 @@ def main(args: argparse.Namespace):
     regions_file = args.output_regions_file
     
     # Generate the list of sample AnnData files
-    sample_adata_files_df = list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix, sample_adata_files, regions_file)
+    sample_adata_files_df = list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix)
 
     # Save sample adata files df to a TSV file
     sample_adata_files_df.to_csv(sample_adata_files, sep='\t', index=False)

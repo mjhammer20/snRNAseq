@@ -1,5 +1,5 @@
 # Full Workflow
-container_registry: Docker://snRNAseq::latest # Docker container, e.g., Docker://snRNAseq::latest
+container: Docker://sn-rna-seq::latest # Docker container, e.g., Docker://sn-rna-seq::latest
 data_dir: data # Base directory for input data, e.g., data
 output_dir: output # Base directory for output data, e.g., output
 standalone: FALSE # Set to TRUE if running individual steps, FALSE if running the full workflow

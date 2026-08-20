@@ -4,9 +4,9 @@ import os
 import argparse
 import gc
 import traceback
-import numpy as np
-import scanpy as sc
-from anndata import AnnData
+import numpy as np #type: ignore silences pylance warning
+import scanpy as sc #type: ignore silences pylance warning
+from anndata import AnnData #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to add Harmony integration to AnnData object
@@ -115,10 +115,10 @@ def main(args: argparse.Namespace):
     print(f"Processing {len(regions)} regions: {regions}")
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

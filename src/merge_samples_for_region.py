@@ -1,8 +1,8 @@
 # Imports
 import argparse
-import scanpy as sc
-from anndata import concat as ad_concat
-from anndata import AnnData
+import scanpy as sc #type: ignore silences pylance warning
+from anndata import concat as ad_concat #type: ignore silences pylance warning
+from anndata import AnnData #type: ignore silences pylance warning
 import gc
 import pandas as pd
 import os

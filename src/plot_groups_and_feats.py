@@ -4,7 +4,7 @@ import os
 import gc 
 import traceback
 from pathlib import Path
-import scanpy as sc
+import scanpy as sc # type: ignore silences pylance warnings
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to make feature and group UMAP plots
@@ -22,9 +22,12 @@ def make_f_and_g_plots(adata: sc.AnnData, groups:str, features:str, region:str):
         None; saves UMAP plots to disk
     """
 
+    # Split the features and groups strings into lists and filter to only those present in adata.obs
     features_list = features.split(", ")
     plot_features = [x for x in features_list if x in adata.obs.columns]
     file_name = f"_features_{region}.png"
+    
+    # Plot UMAPs colored by features
     sc.pl.embedding(
         adata,
         basis="umap",
@@ -35,9 +38,12 @@ def make_f_and_g_plots(adata: sc.AnnData, groups:str, features:str, region:str):
         save=file_name,
     )
 
+    # Split the groups string into a list and filter to only those present in adata.obs
     groups_list = groups.split(", ")
     plot_groups = [x for x in groups_list if x in adata.obs.columns]
     file_name = f"_groups_{region}.png"
+
+    # Plot UMAPs colored by groups
     sc.pl.embedding(
         adata,
         basis="umap",
@@ -48,6 +54,7 @@ def make_f_and_g_plots(adata: sc.AnnData, groups:str, features:str, region:str):
         save=file_name,
     )
 
+# Function to process a single region
 def process_region(adata_input_prefix: str, region: str, groups:str, features:str, worker_id: int, cpus_per_worker: int, umap_dir: str):
     """
     Process a single region by loading the corresponding AnnData object, plotting UMAPs colored by groups and features, and saving the results
@@ -95,7 +102,7 @@ def process_region(adata_input_prefix: str, region: str, groups:str, features:st
     del adata
     gc.collect()
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     # Extract arguments
     regions = args.regions.split()
@@ -105,10 +112,10 @@ def main(args: argparse.Namespace):
     umap_dir = args.umap_dir
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

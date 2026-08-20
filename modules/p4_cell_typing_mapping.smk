@@ -5,15 +5,19 @@ import sys
 from pathlib import Path
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
+CONTAINER = config["container"]
 STANDALONE = config["standalone"]
-CONTAINER_REGISTRY = config["container_registry"]
 OUTPUT_DIR = config["output_dir"]
 DATA_DIR = config["data_dir"]
 REGIONS_FILE = config["regions_file"]
@@ -40,7 +44,7 @@ MMC_OUTPUT_CELL_TYPES_FILE_PREFIX = config["mmc_output_cell_types_file_prefix"]
 REGIONS = parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")
 
 # Compute total GB for merged adata files once at parse time for resource calculation
-total_gb = total_bytes(adata_prefix=f"{OUTPUT_DIR}/{META_ANNOTATED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
+TOTAL_GB = total_bytes(adata_prefix=f"{OUTPUT_DIR}/{META_ANNOTATED_ADATA_PREFIX}_", suffix=REGIONS) / (1024 ** 3)
 
 # Create reference taxonomy output directory, and associated logs directory, if it doesn't exist
 Path(REF_TAX_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
@@ -70,6 +74,7 @@ rule run_mmc:
         expand(f"{REF_TAX_OUTPUT_DIR}/{MMC_RESULTS_PREFIX}_{{region}}.log.txt", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         n_processors=N_PROCESSORS,
         max_gb=MAX_GB,
         rng_seed=RNG_SEED,
@@ -83,22 +88,22 @@ rule run_mmc:
         8
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{REF_TAX_OUTPUT_DIR}/logs/run_mmc.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/gp2-omics-base:latest"
+        CONTAINER
 
     shell:
         """
         set -euo pipefail
 
         # Run MMC
-        python3 -u GP2-Expansion/workflows/src/mmc.py \
+        python3 -u {params.workflow_root}/src/mmc.py \
             --adata-input-prefix {params.adata_prefix} \
             --regions "{params.regions}" \
             --mmc-marker-genes {input.mmc_marker_genes} \
@@ -124,6 +129,7 @@ rule add_cell_type_annotations:
         expand(f"{REF_TAX_OUTPUT_DIR}/{MMC_OUTPUT_CELL_TYPES_FILE_PREFIX}_{{region}}.parquet", region=REGIONS)
 
     params:
+        workflow_root=WORKFLOW_ROOT,
         output_dir=OUTPUT_DIR,
         regions=" ".join(REGIONS),
         adata_input_prefix=f"{OUTPUT_DIR}/{META_ANNOTATED_ADATA_PREFIX}",
@@ -135,22 +141,22 @@ rule add_cell_type_annotations:
         4
 
     resources:
-        mem_mb = lambda wildcards, input: max(int((total_gb * 18 + 20) * 1024), 131072),
-        disk_mb = lambda wildcards, input: max(int((total_gb * 2 + 5) * 1024), 10240),
+        mem_mb = lambda wildcards, input: max(int((TOTAL_GB * 18 + 20) * 1024), 131072),
+        disk_mb = lambda wildcards, input: max(int((TOTAL_GB * 2 + 5) * 1024), 10240),
         runtime=10800
 
     log:
         f"{REF_TAX_OUTPUT_DIR}/logs/annotate_cell_types.log"
 
     container:
-        f"{CONTAINER_REGISTRY}/omics-base:latest"
+        CONTAINER
 
     shell:
         """
         set -euo pipefail
 
         # Run transcriptional phenotype annotation script
-        python3 -u GP2-Expansion/workflows/src/transcriptional_phenotype.py \
+        python3 -u {params.workflow_root}/src/transcriptional_phenotype.py \
             --adata-input-prefix {params.adata_input_prefix} \
             --mmc-results-prefix {params.mmc_results_prefix} \
             --regions "{params.regions}" \

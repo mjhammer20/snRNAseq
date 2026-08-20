@@ -23,6 +23,7 @@ def parse_regions_file(file_path: str) -> list:
     Returns:
         List of regions as strings.
     """
+    # Read the regions from the file and return as a list
     regions = []
     try:
         with open(file_path, 'r') as f:
@@ -41,6 +42,7 @@ def parse_datasets_file(file_path: str) -> list:
     Returns:
         List of datasets as strings.
     """
+    # Read the datasets from the file and return as a list
     datasets = []
     try:
         with open(file_path, 'r') as f:
@@ -60,13 +62,24 @@ def normalize_region_names(region_series: pd.Series) -> pd.Series:
     Returns:
         pandas Series with normalized region names.
     """
+    # Normalize region names by stripping whitespace and converting to title case
     return region_series.str.strip().str.title().str.replace(' ', '_')
 
 # Helper function to calculate resources based on input file size
 def total_bytes_from_file(file_path):
-    """Get size of a single file in bytes."""
+    """
+    Get size of a single file in bytes.
+    
+    Args:
+        file_path: Path to the file.
+    Returns:
+        Size of the file in bytes, or 0 if the file does not exist or an error occurs.
+    """
+    # Check if the file exists before trying to get its size
     if not os.path.exists(file_path):
         return 0
+    
+    # Use pathlib to get the file size, handling any exceptions that may occur
     try:
         return Path(file_path).stat().st_size
     except Exception as e:
@@ -88,13 +101,17 @@ def total_bytes(
     Returns:
         Total size in bytes of the specified files.
     """
+    # Initialize total size
     total_size = 0
+    
+    # Calculate size for AnnData files based on prefix and suffix
     if not suffix is None and not adata_prefix is None:
         for s in suffix:
             adata_object = f"{adata_prefix}{s}.h5ad"
             file_size = total_bytes_from_file(adata_object)
             total_size += file_size
     
+    # Calculate size for additional files if provided
     if not additional_files is None:
         for file in additional_files:
             file_size = total_bytes_from_file(file)
@@ -102,9 +119,10 @@ def total_bytes(
 
     return total_size
 
+# Helper function to calculate total size in bytes for the largest sample AnnData files for a specific region
 def total_bytes_largest_region(
         sample_adata_files: str
-        ) -> list:
+        ) -> int:
     """
     Get list of file paths for the largest sample AnnData files for a specific region.
     Args:
@@ -112,10 +130,15 @@ def total_bytes_largest_region(
     Returns:
         List of file paths for the largest sample AnnData files for the specified region.
     """
+    # Load the sample adata files into a DataFrame
     sample_adata_files_df = pd.read_csv(sample_adata_files, sep='\t')
+    
+    # Load configuration to get column names for region and adata file paths
     config = load_config()
     region_col = config['metadata_region_col']
     adata_file_col = config['adata_file_col']
+
+    # Calculate the total size in bytes for each region and find the largest one
     regions = sample_adata_files_df[region_col].unique()
     largest_size = 0
     for region in regions:

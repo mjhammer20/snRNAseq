@@ -1,13 +1,13 @@
 # Imports
 import argparse
-import scanpy as sc
+import scanpy as sc #type: ignore silences pylance warning
 import pandas as pd
-from anndata import AnnData
+from anndata import AnnData #type: ignore silences pylance warning
 import gc
 import json
 
 # Function to Extract Nearest Genes from GWAS Summary Stats
-def extract_nearest_genes(gwas_summary_stats: str) -> pd.DataFrame:
+def extract_nearest_genes(gwas_summary_stats: str) -> list[str]:
     """
     Extract nearest genes from GWAS summary stats file
 
@@ -26,6 +26,7 @@ def extract_nearest_genes(gwas_summary_stats: str) -> pd.DataFrame:
     
     return nearest_genes
 
+# Function to Extract Marker Genes from Marker Genes File
 def extract_marker_genes(mmc_extended_results_fp: str, gene_mapping_df: pd.DataFrame) -> list[str]:
     """
     Extract marker genes from marker genes file
@@ -104,7 +105,7 @@ def select_features(
 
     return (adata, full_features, reduced_features)
 
-
+# Main function to handle argument parsing and processing
 def main(args: argparse.Namespace):
 
     # Extract arguments

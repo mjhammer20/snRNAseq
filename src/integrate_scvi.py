@@ -1,11 +1,11 @@
 # Imports
 import os
 import argparse
-import anndata as ad
-import scvi
+import anndata as ad #type: ignore silences pylance warning
+import scvi #type: ignore silences pylance warning
 import gc
 import multiprocessing as mp
-import torch
+import torch #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to integrate data with scVI
@@ -26,12 +26,14 @@ def integrate_with_scvi(
         Tuple of (integrated AnnData object, scVI model)
     """
 
+    # Set fixed seed for reproducibility
+    scvi.settings.seed = 200
+
     # Fixed parameters
     n_latent = 30
     n_layers = 2
     train_size = 0.85
     scvi_epochs = 300
-    accelerator = "gpu"
     dispersion = "gene-cell" 
     gene_likelihood = "zinb"
     early_stopping = True
@@ -92,7 +94,6 @@ def integrate_with_scvi(
         max_epochs=scvi_epochs,
         early_stopping=early_stopping,
         early_stopping_patience=early_stopping_patience,
-        accelerator=accelerator,
         batch_size=batch_size,
         gradient_clip_val=gradient_clip_val,
         plan_kwargs=plan_kwargs,
@@ -160,7 +161,7 @@ def process_region(
 
     print(f"GPU {gpu_id} - Region {region} complete!")
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     
     # Extract arguments    

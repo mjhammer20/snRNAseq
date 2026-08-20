@@ -1,11 +1,11 @@
 # Imports
 import os
 import argparse
-import scvi
+import scvi #type: ignore silences pylance warning
 import gc
-import torch
-import anndata as ad
-import numpy as np
+import torch #type: ignore silences pylance warning
+import anndata as ad #type: ignore silences pylance warning
+import numpy as np #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to label cells with scANVI
@@ -81,6 +81,7 @@ def label_with_scanvi(
             plan_kwargs=plan_kwargs,
         )
 
+    # Handle NaN errors during training by re-training with a more conservative learning rate
     except ValueError as e:
         if "nan" in str(e).lower():
             print(f"[WARNING] NaN detected during training: {e}")
@@ -162,6 +163,7 @@ def process_region(
     print(f"GPU {gpu_id} - Loading AnnData for region {region} from {adata_input}")
     adata = ad.read_h5ad(adata_input)
 
+    # Load pre-trained scVI model
     region_scvi_dir = f"{scvi_outputs_dir_prefix}/{region}"
     print(f"GPU {gpu_id} - Loading scVI model for region {region} from {region_scvi_dir}")
     model = scvi.model.SCVI.load(
@@ -195,7 +197,7 @@ def process_region(
 
     print(f"GPU {gpu_id} - Region {region} complete!")
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     # Extract arguments
     regions = args.regions.split()

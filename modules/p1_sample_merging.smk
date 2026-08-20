@@ -6,15 +6,19 @@ from pathlib import Path
 import pandas as pd
 
 # Get absolute path to workflows directory in order to import helper functions
-workflows_root = os.path.dirname(os.path.abspath(workflow.snakefile))
-sys.path.insert(0, str(workflows_root))
+WORKFLOW_ROOT = str(
+    _snakefile_path.parent.parent
+    if _snakefile_path.parent.name == "modules"
+    else _snakefile_path.parent
+)
+sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes_largest_region
 
 # Configuration 
-configfile: f"{workflows_root}/config.yml"
+configfile: f"{WORKFLOW_ROOT}/config.yml"
 
+CONTAINER = config['container']
 STANDALONE = config['standalone']
-CONTAINER_REGISTRY = config['container_registry']
 DATA_DIR = config['data_dir']
 ADATA_DIR = config['adata_dir']
 METADATA_DIR = config['metadata_dir']
@@ -47,6 +51,7 @@ rule list_sample_adata_files:
         sample_adata_files=f'{OUTPUT_DIR}/{SAMPLE_ADATA_FILES}',
         regions = f'{OUTPUT_DIR}/{REGIONS_FILE}'
     params:
+        workflow_root=WORKFLOW_ROOT,
         adata_dir=f'{DATA_DIR}/{ADATA_DIR}',
         sample_adata_suffix=SAMPLE_ADATA_SUFFIX,
         sample_col=SAMPLE_COL,
@@ -59,13 +64,13 @@ rule list_sample_adata_files:
         mem_mb=256,
         disk_mb=10240
     container:
-        f'{CONTAINER_REGISTRY}/omics-base:latest'
+        CONTAINER
     shell:
         '''
         set -euo pipefail
 
         # Run list sample adata files script
-        python3 -u GP2-Expansion/workflows/src/list_sample_adata_files.py \
+        python3 -u {params.workflow_root}/src/list_sample_adata_files.py \
             --sample-metadata {input.sample_metadata} \
             --adata-dir {params.adata_dir} \
             --sample-adata-suffix {params.sample_adata_suffix} \
@@ -86,6 +91,7 @@ rule merge_sample_adatas:
         expand(f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}_{{region}}.h5ad', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")),
         expand(f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}_{{region}}.csv', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
     params:
+        workflow_root=WORKFLOW_ROOT,
         adata_output_prefix=f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}',
         output_metadata_prefix=f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}',
         region_col=REGION_COL,
@@ -99,13 +105,13 @@ rule merge_sample_adatas:
     log:
         f'{OUTPUT_DIR}/logs/merge_adata.log'
     container:
-        f'{CONTAINER_REGISTRY}/omics-base:latest'
+        CONTAINER
     shell:
         '''
         set -euo pipefail
         
         # Run merge adata script
-        python3 -u GP2-Expansion/workflows/src/merge_samples_for_region.py \
+        python3 -u {params.workflow_root}/src/merge_samples_for_region.py \
             --regions "{params.regions}" \
             --sample-adata-files {input.sample_adata_files} \
             --sample-col "{params.sample_col}" \
