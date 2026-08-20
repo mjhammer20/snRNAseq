@@ -44,6 +44,7 @@ transform_gwas_sumstats <- function(gwas_file, output_file, chunk_size = 50000, 
     try(stopCluster(cl), silent = TRUE)
   }, add = TRUE)
 
+  # Query biomaRt in parallel for each chunk
   snp_annotations_list <- foreach::foreach(i = seq_along(chunk_ids), .combine = rbind, .packages = "biomaRt") %dopar% {
     idx <- chunk_ids[[i]]
     chunk <- gwas_data[idx, ]
@@ -51,6 +52,7 @@ transform_gwas_sumstats <- function(gwas_file, output_file, chunk_size = 50000, 
     # Progress logging (per worker)
     log_line(sprintf("  [Chunk %d/%d] Querying %d SNPs\n", i, length(chunk_ids), nrow(chunk)))
 
+    # Query biomaRt for rsIDs based on chromosome and base pair position
     getBM(
       attributes = c("refsnp_id", "chr_name", "chrom_start"),
       filters = c("chr_name", "start"),
@@ -136,23 +138,29 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
   log_line(sprintf("  X dim via nrow/ncol: %s x %s\n", x_nrow, x_ncol))
   log_line(sprintf("  obs rows: %s\n", obs_nrow))
 
+  # Check for NA dimensions and stop if any are NA
   if (is.na(x_nrow) || is.na(x_ncol) || is.na(obs_nrow)) {
     stop("Unexpected shape for X (nrow/ncol not available)")
   }
 
+  # Align X and obs dimensions, transposing X if necessary
   if (obs_nrow != x_nrow && obs_nrow == x_ncol) {
     log_line("  Transposing X to match obs rows\n")
     adata$X <- Matrix::t(adata$X)
     x_nrow <- nrow(adata$X)
   }
+
+  # Final check for alignment
   if (obs_nrow != x_nrow) {
     stop(sprintf("Unexpected shape for X after alignment (obs rows=%s, X rows=%s)", obs_nrow, x_nrow))
   }
 
+  # Ensure X is a sparse matrix for downstream processing
   tryCatch({
     adata$X <- as(adata$X, "CsparseMatrix")
   }, error = function(e) { stop(sprintf("FAIL: as(CsparseMatrix): %s", e$message)) })
 
+  # Ensure X is a dgCMatrix for compatibility with scKirby::anndata_to_ctd
   tryCatch({
     adata$X <- as(adata$X, "dgCMatrix")
   }, error = function(e) { stop(sprintf("FAIL: as(dgCMatrix): %s", e$message)) })
@@ -167,6 +175,7 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
     keep_cells <- !is.na(adata$obs[[cell_type_assignment_key]])
   }, error = function(e) { stop(sprintf("FAIL: keep_cells: %s", e$message)) })
   
+  # Check that keep_cells length matches number of rows in X
   if (length(keep_cells) != nrow(adata$X)) {
     stop(sprintf("keep_cells length (%s) != X rows (%s)", length(keep_cells), nrow(adata$X)))
   }
@@ -174,6 +183,7 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
   # Grab cell indices with valid cell type annotations (non-NA) for subsetting
   keep_idx <- which(keep_cells)
 
+  # Check if any cells remain after filtering
   if (length(keep_idx) == 0) {
     stop(sprintf("No cells with valid %s remain for region %s", cell_type_assignment_key, region))
   }
@@ -188,13 +198,16 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
     adata <- adata$as_InMemoryAnnData()
   }, error = function(e) { stop(sprintf("FAIL: as_InMemoryAnnData: %s", e$message)) })
 
+  # Drop unused levels in cell type assignment factor
   tryCatch({
     adata$obs[[cell_type_assignment_key]] <- droplevels(factor(adata$obs[[cell_type_assignment_key]]))
   }, error = function(e) { stop(sprintf("FAIL: droplevels: %s", e$message)) })
 
+  # Final checks and logging
   log_line(sprintf("  Remaining cells with valid cell type: %d\n", nrow(adata$X)))
   log_line(sprintf("  Remaining cell types: %d\n", length(unique(adata$obs[[cell_type_assignment_key]]))))
 
+  # Ensure the cell type assignment key exists in obs
   if (!cell_type_assignment_key %in% colnames(adata$obs)) {
     stop(sprintf("%s column missing", cell_type_assignment_key))
   }
@@ -203,6 +216,8 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
   if (is.null(rownames(adata$obs))) {
     rownames(adata$obs) <- paste0("cell_", seq_len(nrow(adata$obs)))
   }
+
+  # Ensure X has column names (gene names) for CTD creation
   if (is.null(colnames(adata$X))) {
     if (!is.null(adata$var_names)) {
       colnames(adata$X) <- as.character(adata$var_names)
@@ -212,6 +227,8 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
       stop("No gene names found for X columns")
     }
   }
+
+  # Ensure cell type assignment column is character for CTD creation
   adata$obs[[cell_type_assignment_key]] <- as.character(adata$obs[[cell_type_assignment_key]])
 
   # Compatibility shim for orthogene::aggregate_rows signature
@@ -247,11 +264,10 @@ generate_ctd <- function(adata_prefix, region, cell_type_assignment_key) {
     if (is.null(ctd[[1]]$specificity) || nrow(ctd[[1]]$specificity) == 0) {
       stop(sprintf("CTD for region %s is empty - no specificity data\n", region))
     }
-
     log_line(sprintf("CTD created successfully with %d genes and %d cell types\n",
                 nrow(ctd[[1]]$specificity), ncol(ctd[[1]]$specificity)))
 
-    # Clean up
+    # Clean up memory
     rm(adata)
     gc()
     
@@ -319,6 +335,7 @@ perform_cell_type_enrichment <- function(gwas_base, ctd, region, output_dir, ups
   })
   log_line("Top 10% association test complete\n")
 
+  # Merge results from linear and top 10% tests
   enrichment_results <- tryCatch({
     MAGMA.Celltyping::merge_magma_results(
       ctAssoc1 = enrichment_results_linear,
@@ -355,6 +372,7 @@ plot_results <- function(enrichment_results, ctd, region, output_dir, gwas_base)
   log_line("Plotting completed successfully\n")
 }
 
+# Main function for precomputed workflow
 main_precomputed <- function(ref_tax_output_dir, gwas_base, adata_prefix, regions, upstream_kb, downstream_kb, cell_type_assignment_key, results_prefix) {
 
   # Loop through regions and perform analysis
@@ -383,8 +401,8 @@ main_precomputed <- function(ref_tax_output_dir, gwas_base, adata_prefix, region
       saveRDS(enrichment_results, file.path(ref_tax_output_dir, paste0("precomputed_enrichment_results_", region, ".rds")))
       write.table(enrichment_results, file.path(ref_tax_output_dir, paste0("precomputed_enrichment_results_", region, ".tsv")), sep = "\t", row.names = FALSE, quote = FALSE)
       log_line(sprintf("[%s] Results saved\n", Sys.time()))
-      
-      # Clean up
+
+      # Clean up memory
       rm(ctd, enrichment_results)
       gc()
       
@@ -402,6 +420,7 @@ main_precomputed <- function(ref_tax_output_dir, gwas_base, adata_prefix, region
   log_line(sprintf("Failed regions: %d\n", sum(results_list != "SUCCESS")))
 }
 
+# Main function for full workflow
 main <- function(ref_tax_output_dir, gwas_summary_stats, magma_gwas_summary_stats, adata_prefix, regions, upstream_kb, downstream_kb, cell_type_assignment_key, results_prefix) {
 
   # Prepare GWAS summary statistics for MAGMA
@@ -456,6 +475,7 @@ main <- function(ref_tax_output_dir, gwas_summary_stats, magma_gwas_summary_stat
   log_line(sprintf("Failed regions: %d\n", sum(results_list != "SUCCESS")))
 }
 
+# Command-line argument parsing and main execution
 if (!interactive()) {
 
   parser <- ArgumentParser(description = "Cell Type Enrichment Analysis")

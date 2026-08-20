@@ -1,11 +1,11 @@
 # Imports
 import pathlib
-from cell_type_mapper.cli.map_to_on_the_fly_markers import OnTheFlyMapper
-from cell_type_mapper.cli.from_specified_markers import FromSpecifiedMarkersRunner
-import cell_type_mapper.test_utils.cache_wrapper as cache_module
+from cell_type_mapper.cli.map_to_on_the_fly_markers import OnTheFlyMapper #type: ignore silences pylance warning
+from cell_type_mapper.cli.from_specified_markers import FromSpecifiedMarkersRunner #type: ignore silences pylance warning
+import cell_type_mapper.test_utils.cache_wrapper as cache_module #type: ignore silences pylance warning
 import argparse
 
-
+# Function to run Allen Institute's Cell Type Mapper (MMC) on a given AnnData object with specified parameters and output paths 
 def run_mmc(
           adata_input_fp: str, 
           mmc_precomputed_stats: str, 
@@ -84,6 +84,7 @@ def run_mmc(
 
     runner.run()
 
+# Main function to handle argument parsing and run MMC for each region's stratified dataset
 def main(args: argparse.Namespace):
     
     # Extract arguments

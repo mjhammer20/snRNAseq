@@ -1,7 +1,7 @@
 # Imports
 import argparse
-import scanpy as sc
-from anndata import AnnData
+import scanpy as sc #type: ignore silences pylance warning
+from anndata import AnnData #type: ignore silences pylance warning
 import pandas as pd
 import gc
 import sys
@@ -11,6 +11,7 @@ workflows_root = 'GP2-Expansion/workflows'
 sys.path.insert(0, str(workflows_root))
 from src.helpers import normalize_region_names
 
+# Function to load sample metadata from a CSV file
 def load_sample_metadata(file_path: str, metadata_region_col: str, metadata_sample_col: str) -> pd.DataFrame:
     """
     Load sample metadata from a comma-separated values (CSV) file.

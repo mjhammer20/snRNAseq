@@ -3,10 +3,10 @@ import os
 import traceback
 import argparse
 import gc
-import scanpy as sc
-from scib_metrics.benchmark import Benchmarker, BioConservation
+import scanpy as sc #type: ignore silences pylance warning
+from scib_metrics.benchmark import Benchmarker, BioConservation #type: ignore silences pylance warning
 from pathlib import Path
-from anndata import AnnData
+from anndata import AnnData #type: ignore silences pylance warning
 from pandas import DataFrame
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -15,7 +15,7 @@ def get_artifact_metrics(
     adata: AnnData, 
     batch_key: str, 
     cell_type_assignment_key: str, 
-    scib_report_dir: Path | str
+    scib_report_dir: str
 ) -> DataFrame:
     """
     Compute `scib` metrics on final artifacts
@@ -61,7 +61,7 @@ def get_artifact_metrics(
 
     return df
 
-
+# Function to process a single region
 def process_region(
         region: str,
         adata_input_prefix: str,
@@ -110,7 +110,7 @@ def process_region(
     del adata
     gc.collect()
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     # Extract arguments
     regions = args.regions.split()
@@ -120,10 +120,10 @@ def main(args: argparse.Namespace):
     output_report_dir = args.output_report_dir
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

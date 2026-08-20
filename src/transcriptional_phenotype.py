@@ -1,5 +1,5 @@
 # Imports
-import scanpy as sc
+import scanpy as sc #type: ignore silences pylance warning
 import argparse
 import pandas as pd
 from pathlib import Path
@@ -7,7 +7,7 @@ import gc
 
 
 # Function to read the MMC results from the CSV file and return a pandas DataFrame
-def read_csv_results(csv_results_path: str | Path) -> pd.DataFrame:
+def read_csv_results(csv_results_path: str) -> pd.DataFrame:
     """
     Read the results file and return a pandas DataFrame. The first 4 lines of the file are header information and should be skipped.
 
@@ -58,11 +58,11 @@ def transform_mmc_results(mmc_results: pd.DataFrame):
     mmc_results.loc[mmc_results["prob_subtype"] < 0.5, "cell_subtype"] = "Unknown"
 
     # Keep only the relevant columns for merging with the adata obs
-    mmc_results = mmc_results[["cell_supertype", "cell_type", "cell_subtype", "rho_supertype", "prob_supertype", "rho_type", "prob_type", "rho_subtype", "prob_subtype"]]
+    mmc_results = mmc_results[["cell_supertype", "cell_type", "cell_subtype", "rho_supertype", "prob_supertype", "rho_type", "prob_type", "rho_subtype", "prob_subtype"]] #type: ignore silences pylance warning
 
     return mmc_results
 
-
+# Main function to handle argument parsing and processing of regions
 def main(args: argparse.Namespace):
 
     # Extract arguments

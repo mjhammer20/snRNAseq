@@ -4,13 +4,13 @@ import os
 import traceback
 import pandas as pd
 import argparse
-import scanpy as sc
-from pydeseq2.dds import DeseqDataSet
-from pydeseq2.default_inference import DefaultInference
-from pydeseq2.ds import DeseqStats
+import scanpy as sc #type: ignore silences pylance warning
+from pydeseq2.dds import DeseqDataSet #type: ignore silences pylance warning
+from pydeseq2.default_inference import DefaultInference #type: ignore silences pylance warning
+from pydeseq2.ds import DeseqStats #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-
+# Function to initialize DESeq2 dataset
 def initialize_dds(adata, inference):
     """
     Initialize DESeq2 dataset from AnnData object.
@@ -34,7 +34,7 @@ def initialize_dds(adata, inference):
     )
     
     # Pseudobulk by summing counts across cells for each sample
-    pb_counts = counts_df.groupby(by=metadata["sample"], axis=0).sum()  # samples x genes
+    pb_counts = counts_df.groupby(by=metadata["sample"], axis=0).sum()  # samples x genes # type: ignore silences pylance warning
 
     # Get unique metadata per sample using agg with 'first' for all columns
     pb_metadata = metadata.groupby("sample", observed=True).agg({col: 'first' for col in metadata.columns})
@@ -59,6 +59,7 @@ def initialize_dds(adata, inference):
 
     return dds
 
+# Function to run DESeq2 analysis
 def run_deseq2(dds, inference):
     """
     Run DESeq2 analysis on dataset.
@@ -78,6 +79,7 @@ def run_deseq2(dds, inference):
 
     return results
 
+# Function to identify significant genes
 def identify_significant_genes(results):
     """
     Identify significant genes based on adjusted p-value and log2 fold change thresholds.
@@ -93,6 +95,7 @@ def identify_significant_genes(results):
     ]
     return significant_genes
 
+# Function to process a single region
 def process_region(region, adata_input_prefix, results_prefix, cpus_per_worker):
     """
     Process a single region by loading the corresponding AnnData object, running DESeq2 analysis, and saving the results.
@@ -135,6 +138,7 @@ def process_region(region, adata_input_prefix, results_prefix, cpus_per_worker):
 
     return significant_genes
 
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
 
     # Extract arguments
@@ -143,10 +147,10 @@ def main(args: argparse.Namespace):
     results_prefix = args.results_prefix
 
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

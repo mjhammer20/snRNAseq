@@ -1,11 +1,11 @@
 # Imports
 import os
 import argparse
-import anndata as ad
-import scvi
+import anndata as ad #type: ignore silences pylance warning
+import scvi #type: ignore silences pylance warning
 import gc
 import multiprocessing as mp
-import torch
+import torch #type: ignore silences pylance warning
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Function to integrate data with scVI
@@ -161,7 +161,7 @@ def process_region(
 
     print(f"GPU {gpu_id} - Region {region} complete!")
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
     
     # Extract arguments    

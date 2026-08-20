@@ -2,10 +2,11 @@
 
 import argparse
 import gc
-import scanpy as sc
+import scanpy as sc #type: ignore silences pylance warning
 from pathlib import Path
-from anndata import AnnData
+from anndata import AnnData #type: ignore silences pylance warning
 
+# Function to generate QC plots for a given AnnData object
 def gen_qc_plots(
         adata: AnnData,
         qc_plots_dir: str,
@@ -32,6 +33,7 @@ def gen_qc_plots(
     # Set CPUs to use for parallel computing
     sc.settings.n_jobs = -1
 
+    # Set verbosity and figure parameters for plotting
     sc.settings.verbosity = 1
     sc.settings.figdir = fig_dir
     sc.set_figure_params(
@@ -45,6 +47,7 @@ def gen_qc_plots(
         sc.pl.violin(adata, keys=metric, size=0, save="".join("_" + metric + "_" + region))
 
 
+# Main function to handle argument parsing and processing of regions
 def main(args: argparse.Namespace):
     # Extract Arguments
     regions = args.regions.split()

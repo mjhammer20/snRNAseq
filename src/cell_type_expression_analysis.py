@@ -1,10 +1,10 @@
 # Imports
-import scanpy as sc
+import scanpy as sc #type: ignore silences pylance warning
 import os
 from pathlib import Path
 import pandas as pd
-import numpy as np
-from anndata import AnnData
+import numpy as np #type: ignore silences pylance warning
+from anndata import AnnData #type: ignore silences pylance warning
 import matplotlib.pyplot as plt
 import argparse
 import gc
@@ -237,7 +237,7 @@ def process_region(
     del expressed
     gc.collect()
 
-
+# Main function to handle argument parsing and parallel processing
 def main(args: argparse.Namespace):
 
     # Extract arguments
@@ -262,10 +262,10 @@ def main(args: argparse.Namespace):
     print(f"Extracted {len(nearest_genes)} unique PD risk SNP nearest genes from GWAS summary statistics")
     
     # Number of parallel workers
-    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()))
+    n_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', os.cpu_count()) or 4)
 
     # Allocate CPUs
-    total_cpus = os.cpu_count()
+    total_cpus = os.cpu_count() or 4
     cpus_per_worker = max(1, total_cpus // n_workers)
     
     print(f"Total CPUs: {total_cpus}, CPUs per worker: {cpus_per_worker}")

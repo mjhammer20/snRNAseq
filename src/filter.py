@@ -1,11 +1,11 @@
 # Imports
-import scanpy as sc
+import scanpy as sc #type: ignore silences pylance warning
 import argparse
-from anndata import AnnData
+from anndata import AnnData #type: ignore silences pylance warning
 import gc
 
 # Filter the merged adata object based on QC metrics and doublet scores
-def filter_adata(adata: AnnData, region: str, pct_counts_mt_max: int, doublet_score_max: float, total_counts_limits: list, n_genes_by_counts_limits: list) -> AnnData:
+def filter_adata(adata: AnnData, pct_counts_mt_max: int, doublet_score_max: float, total_counts_limits: list, n_genes_by_counts_limits: list) -> AnnData:
     """
     Filter the merged adata object based on QC metrics and doublet scores.
      - Filters:
@@ -17,7 +17,6 @@ def filter_adata(adata: AnnData, region: str, pct_counts_mt_max: int, doublet_sc
      
     Args:
         adata: AnnData object to filter
-        region: The region name for the dataset
         pct_counts_mt_max: Maximum percentage of mitochondrial gene counts allowed per cell
         doublet_score_max: Maximum doublet detection score threshold
         total_counts_limits: Minimum and maximum total UMI (unique molecular identifier) counts per cell
@@ -52,7 +51,7 @@ def filter_adata(adata: AnnData, region: str, pct_counts_mt_max: int, doublet_sc
 
     return adata_filtered
 
-
+# Main function to handle argument parsing and processing
 def main(args: argparse.Namespace):
 
     # Extract arguments
@@ -78,7 +77,7 @@ def main(args: argparse.Namespace):
         print(f"Loaded {adata_fp} with {adata.n_obs} cells and {adata.n_vars} genes")
 
         # Filter adata
-        adata_filtered = filter_adata(adata, region, pct_counts_mt_max, doublet_score_max, total_counts_limits, n_genes_by_counts_limits, adata_output_prefix)
+        adata_filtered = filter_adata(adata, pct_counts_mt_max, doublet_score_max, total_counts_limits, n_genes_by_counts_limits)
 
         # Write the filtered adata to a new file in compressed format
         output_fp = f"{adata_output_prefix}_{region}.h5ad"
