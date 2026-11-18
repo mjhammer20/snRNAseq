@@ -10,6 +10,21 @@ from src.helpers import normalize_region_names
 
 # Create a list of sample AnnData files based on the metadata and save to a TSV file
 def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix):
+    """
+    Generate a DataFrame containing sample AnnData file paths based on the provided metadata.
+
+    Args:
+        sample_metadata_file (str): Path to the sample metadata CSV file.
+        sample_col (str): Column name for the sample label in the sample metadata TSV file.
+        region_col (str): Column name for the region label in the sample metadata TSV file.
+        adata_file_col (str): Column name for the adata file paths in the output sample adata files TSV.
+        adata_dir (str): Directory containing the AnnData files.
+        sample_adata_suffix (str): File suffix for the sample AnnData files.
+
+    Returns:
+        pd.DataFrame: DataFrame containing sample AnnData file paths and associated metadata.
+    """
+
     # Load sample metadata
     metadata_df = pd.read_csv(sample_metadata_file)
     
@@ -24,6 +39,16 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
 
 # Main function to handle argument parsing and generate sample AnnData files list
 def main(args: argparse.Namespace):
+    """
+    Main function to handle argument parsing and generate sample AnnData files list.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+        None. Writes the sample AnnData files list to a TSV file and unique regions to a text file.
+    """
+
     # Extract arguments
     sample_metadata_file = args.sample_metadata
     sample_col = args.sample_col
@@ -90,6 +115,7 @@ if __name__ == "__main__":
         required=True,
         help="Path to the output text file for unique regions"
     )
+    
     args = parser.parse_args()
 
     main(args)
