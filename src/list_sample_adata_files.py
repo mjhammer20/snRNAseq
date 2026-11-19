@@ -9,7 +9,7 @@ sys.path.insert(0, str(workflows_root))
 from src.helpers import normalize_region_names
 
 # Create a list of sample AnnData files based on the metadata and save to a TSV file
-def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix):
+def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix = None):
     """
     Generate a DataFrame containing sample AnnData file paths based on the provided metadata.
 
@@ -30,7 +30,13 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
     
     # Create a list of sample AnnData files
     sample_adata_files_df = metadata_df[[sample_col, region_col]].copy()
-    sample_adata_files_df[adata_file_col] = sample_adata_files_df[sample_col].apply(lambda x: f"{adata_dir}/{x}.{sample_adata_suffix}.h5ad")
+
+    # If sample_adata_suffix is provided, construct the AnnData file paths
+    if sample_adata_suffix:
+        sample_adata_files_df[adata_file_col] = sample_adata_files_df[sample_col].apply(lambda x: f"{adata_dir}/{x}.{sample_adata_suffix}.h5ad")
+
+    else:
+        sample_adata_files_df[adata_file_col] = sample_adata_files_df[sample_col].apply(lambda x: f"{adata_dir}/{x}.h5ad")
 
     # Normalize region names in the sample metadata
     sample_adata_files_df[region_col] = normalize_region_names(sample_adata_files_df[region_col])
@@ -102,7 +108,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--sample-adata-suffix",
-        required=True,
+        default=None,
         help="File suffix for the sample AnnData files"
     )
     parser.add_argument(
