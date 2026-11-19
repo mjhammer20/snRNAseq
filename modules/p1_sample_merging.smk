@@ -14,9 +14,7 @@ WORKFLOW_ROOT = str(
 sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes_largest_region
 
-# Configuration 
-configfile: f"{WORKFLOW_ROOT}/config.yml"
-
+# Configuration
 CONTAINER = config['container']
 STANDALONE = config['standalone']
 DATA_DIR = config['data_dir']

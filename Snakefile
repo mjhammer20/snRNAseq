@@ -19,8 +19,6 @@ from src.helpers import parse_regions_file
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
-configfile: f"{WORKFLOW_ROOT}/config.yml"
-
 OUTPUT_DIR = config["output_dir"]
 REGIONS_FILE = config["regions_file"]
 REF_TAX = config["mmc_ref_tax"]

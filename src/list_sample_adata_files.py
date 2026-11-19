@@ -10,7 +10,7 @@ from src.helpers import normalize_region_names
 
 # Create a list of sample AnnData files based on the metadata and save to a TSV file
 def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_file_col, adata_dir, sample_adata_suffix = None):
-    """
+    '''
     Generate a DataFrame containing sample AnnData file paths based on the provided metadata.
 
     Args:
@@ -23,7 +23,7 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
 
     Returns:
         pd.DataFrame: DataFrame containing sample AnnData file paths and associated metadata.
-    """
+    '''
 
     # Load sample metadata
     metadata_df = pd.read_csv(sample_metadata_file)
@@ -45,7 +45,7 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
 
 # Main function to handle argument parsing and generate sample AnnData files list
 def main(args: argparse.Namespace):
-    """
+    '''
     Main function to handle argument parsing and generate sample AnnData files list.
 
     Args:
@@ -53,7 +53,7 @@ def main(args: argparse.Namespace):
 
     Returns:
         None. Writes the sample AnnData files list to a TSV file and unique regions to a text file.
-    """
+    '''
 
     # Extract arguments
     sample_metadata_file = args.sample_metadata
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--adata-file-col",
-        required=True,
+        default="Adata_File",
         help="Column name for the adata file paths in the output sample adata files TSV"
     )
     parser.add_argument(
