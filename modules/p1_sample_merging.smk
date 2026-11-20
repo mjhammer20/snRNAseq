@@ -6,11 +6,15 @@ from pathlib import Path
 import pandas as pd
 
 # Get absolute path to workflows directory in order to import helper functions
-WORKFLOW_ROOT = str(
-    _snakefile_path.parent.parent
-    if _snakefile_path.parent.name == "modules"
-    else _snakefile_path.parent
-)
+# WORKFLOW_ROOT = str(
+#     _snakefile_path.parent.parent
+#     if _snakefile_path.parent.name == "modules"
+#     else _snakefile_path.parent
+# )
+
+SNAKEFILE_PATH = Path(workflow.snakefile).resolve()
+WORKFLOW_ROOT = str(SNAKEFILE_PATH.parent.parent) if SNAKEFILE_PATH.parent.name == "modules" else str(SNAKEFILE_PATH.parent)
+
 sys.path.insert(0, str(WORKFLOW_ROOT))
 from src.helpers import parse_regions_file, total_bytes_largest_region
 
@@ -51,7 +55,7 @@ rule list_sample_adata_files:
     params:
         workflow_root=WORKFLOW_ROOT,
         adata_dir=f'{DATA_DIR}/{ADATA_DIR}',
-        sample_adata_suffix=SAMPLE_ADATA_SUFFIX,
+        sample_adata_suffix_arg=(lambda wc: "" if SAMPLE_ADATA_SUFFIX in [None, "", "None", "NULL", "null"] else f'--sample-adata-suffix "{SAMPLE_ADATA_SUFFIX}"'),
         sample_col=SAMPLE_COL,
         region_col=REGION_COL,
         adata_file_col=ADATA_FILE_COL
@@ -71,7 +75,7 @@ rule list_sample_adata_files:
         python3 -u {params.workflow_root}/src/list_sample_adata_files.py \
             --sample-metadata {input.sample_metadata} \
             --adata-dir {params.adata_dir} \
-            --sample-adata-suffix {params.sample_adata_suffix} \
+            {params.sample_adata_suffix_arg} \
             --sample-col "{params.sample_col}" \
             --region-col "{params.region_col}" \
             --adata-file-col "{params.adata_file_col}" \
@@ -98,8 +102,8 @@ rule merge_sample_adatas:
         regions = " ".join(parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
     threads: 12
     resources:
-        mem_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files) * 10 / (1024 ** 2)), 131072), 
-        disk_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files) * 2 / (1024 ** 2)), 10240)
+        mem_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files, REGION_COL) * 10 / (1024 ** 2)), 131072), 
+        disk_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files, REGION_COL) * 2 / (1024 ** 2)), 10240)
     log:
         f'{OUTPUT_DIR}/logs/merge_adata.log'
     container:

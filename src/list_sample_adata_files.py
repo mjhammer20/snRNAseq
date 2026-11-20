@@ -26,13 +26,18 @@ def list_sample_adata_files(sample_metadata_file, sample_col, region_col, adata_
     '''
 
     # Load sample metadata
-    metadata_df = pd.read_csv(sample_metadata_file)
-    
+    if sample_metadata_file.endswith('.tsv'):
+        metadata_df = pd.read_table(sample_metadata_file, sep='\t')
+    elif sample_metadata_file.endswith('.csv'):
+        metadata_df = pd.read_csv(sample_metadata_file)
+    else:
+        raise ValueError("Unsupported file format. Please provide a TSV or CSV file.")
+
     # Create a list of sample AnnData files
     sample_adata_files_df = metadata_df[[sample_col, region_col]].copy()
 
     # If sample_adata_suffix is provided, construct the AnnData file paths
-    if sample_adata_suffix:
+    if sample_adata_suffix is not None:
         sample_adata_files_df[adata_file_col] = sample_adata_files_df[sample_col].apply(lambda x: f"{adata_dir}/{x}.{sample_adata_suffix}.h5ad")
 
     else:

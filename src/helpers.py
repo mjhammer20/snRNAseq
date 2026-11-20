@@ -2,16 +2,6 @@
 import os
 from pathlib import Path
 import pandas as pd
-import yaml
-
-# Helper function to load config from YAML file
-def load_config() -> dict:
-    """Load configuration from YAML file."""
-    workflows_root = 'GP2-Expansion/workflows'
-    config_path = f"{workflows_root}/config.yml"
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
 
 # Helper functions to parse regions file and output space-separated regions list
 def parse_regions_file(file_path: str) -> list:
@@ -121,7 +111,9 @@ def total_bytes(
 
 # Helper function to calculate total size in bytes for the largest sample AnnData files for a specific region
 def total_bytes_largest_region(
-        sample_adata_files: str
+        sample_adata_files: str,
+        region_col: str = 'Region',
+        adata_file_col: str = 'Adata_File'
         ) -> int:
     """
     Get list of file paths for the largest sample AnnData files for a specific region.
@@ -132,11 +124,6 @@ def total_bytes_largest_region(
     """
     # Load the sample adata files into a DataFrame
     sample_adata_files_df = pd.read_csv(sample_adata_files, sep='\t')
-    
-    # Load configuration to get column names for region and adata file paths
-    config = load_config()
-    region_col = config['metadata_region_col']
-    adata_file_col = config['adata_file_col']
 
     # Calculate the total size in bytes for each region and find the largest one
     regions = sample_adata_files_df[region_col].unique()
