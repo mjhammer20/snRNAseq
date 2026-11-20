@@ -6,11 +6,6 @@ from pathlib import Path
 import pandas as pd
 
 # Get absolute path to workflows directory in order to import helper functions
-# WORKFLOW_ROOT = str(
-#     _snakefile_path.parent.parent
-#     if _snakefile_path.parent.name == "modules"
-#     else _snakefile_path.parent
-# )
 
 SNAKEFILE_PATH = Path(workflow.snakefile).resolve()
 WORKFLOW_ROOT = str(SNAKEFILE_PATH.parent.parent) if SNAKEFILE_PATH.parent.name == "modules" else str(SNAKEFILE_PATH.parent)
@@ -24,6 +19,7 @@ STANDALONE = config['standalone']
 DATA_DIR = config['data_dir']
 ADATA_DIR = config['adata_dir']
 METADATA_DIR = config['metadata_dir']
+TEMP_DIR = config['temp_dir']
 OUTPUT_DIR = config['output_dir']
 SAMPLE_METADATA = config['sample_metadata']
 REGION_COL = config['metadata_region_col']
@@ -42,8 +38,8 @@ if STANDALONE:
         input:
             f'{OUTPUT_DIR}/{SAMPLE_ADATA_FILES}',
             f'{OUTPUT_DIR}/{REGIONS_FILE}',
-            lambda wildcards: expand(f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}_{{region}}.h5ad', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")),
-            lambda wildcards: expand(f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}_{{region}}.csv', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
+            expand(f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}_{{region}}.h5ad', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")),
+            expand(f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}_{{region}}.csv', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
 
 rule list_sample_adata_files:
     '''List sample name, file path, and associated region in tsv file for downstream processing'''
@@ -88,24 +84,24 @@ rule list_sample_adata_files:
 rule merge_sample_adatas:
     '''Merge preprocessed samples'''
     input:
-        sample_adata_files=f'{OUTPUT_DIR}/{SAMPLE_ADATA_FILES}'
+        sample_adata_files=f'{OUTPUT_DIR}/{SAMPLE_ADATA_FILES}',
+        regions=f'{OUTPUT_DIR}/{REGIONS_FILE}'
     output:
-        expand(f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}_{{region}}.h5ad', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}")),
-        expand(f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}_{{region}}.csv', region=parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
+        adata=f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}_{{region}}.h5ad',
+        metadata=f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}_{{region}}.csv'
     params:
         workflow_root=WORKFLOW_ROOT,
         adata_output_prefix=f'{OUTPUT_DIR}/{MERGED_ADATA_PREFIX}',
         output_metadata_prefix=f'{OUTPUT_DIR}/{INITIAL_ADATA_METADATA_PREFIX}',
         region_col=REGION_COL,
         sample_col=SAMPLE_COL,
-        adata_file_col=ADATA_FILE_COL,
-        regions = " ".join(parse_regions_file(f"{OUTPUT_DIR}/{REGIONS_FILE}"))
+        adata_file_col=ADATA_FILE_COL
     threads: 12
     resources:
         mem_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files, REGION_COL) * 10 / (1024 ** 2)), 131072), 
         disk_mb=lambda wildcards, input: max(int(total_bytes_largest_region(input.sample_adata_files, REGION_COL) * 2 / (1024 ** 2)), 10240)
     log:
-        f'{OUTPUT_DIR}/logs/merge_adata.log'
+        f'{OUTPUT_DIR}/logs/merge_adata_{{region}}.log'
     container:
         CONTAINER
     shell:
@@ -114,7 +110,7 @@ rule merge_sample_adatas:
         
         # Run merge adata script
         python3 -u {params.workflow_root}/src/merge_samples_for_region.py \
-            --regions "{params.regions}" \
+            --regions "{wildcards.region}" \
             --sample-adata-files {input.sample_adata_files} \
             --sample-col "{params.sample_col}" \
             --region-col "{params.region_col}" \
@@ -123,3 +119,4 @@ rule merge_sample_adatas:
             --output-metadata-prefix {params.output_metadata_prefix} \
             2>&1 | tee {log}
         '''
+
